@@ -15,12 +15,16 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.example.vivian.guessmusic.R;
+import com.example.vivian.guessmusic.data.Const;
 import com.example.vivian.guessmusic.model.IWordButtonClickListener;
+import com.example.vivian.guessmusic.model.Song;
 import com.example.vivian.guessmusic.model.WordButton;
 import com.example.vivian.guessmusic.myui.MyGridView;
 import com.example.vivian.guessmusic.util.Util;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements IWordButtonClickListener{
     public final static int COUNTS_WORDS=24;
@@ -46,6 +50,9 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     private MyGridView mMyGridView;
     //已选择文字框UI容器
     private LinearLayout mViewWordsContainer;
+
+    private Song mCurrentSong;
+    private int mCurrentStageIndex=-1;
 
 
 
@@ -153,7 +160,16 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         mViewPan.clearAnimation();
         super.onPause();
     }
+    private Song loadStageSongInfo(int stageIndex){
+        Song song=new Song();
+        String[] stage= Const.SONG_INFO[stageIndex];
+        song.setSongFileName(stage[Const.INDEX_FILE_NAME]);
+        song.setSongName(stage[Const.INDEX_SONG_NAME]);
+        return song;
+    }
     public void initCurrentStageData(){
+        //读取当前关的歌曲信息
+        mCurrentSong=loadStageSongInfo(++mCurrentStageIndex);
         //初始化已选择框
         mBtnSelsecWords=initWordSelect();
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(140,140);
@@ -179,10 +195,10 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     private ArrayList<WordButton> initAllword(){
         ArrayList<WordButton> data=new ArrayList<>();
         //获得所有待选文字
-        //.......
+        String[] words=generateWords();
         for(int i=0;i<COUNTS_WORDS;i++){
             WordButton button=new WordButton();
-            button.mWordString="good";
+            button.mWordString=words[i];
             data.add(button);
 
         }
@@ -194,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     private ArrayList<WordButton> initWordSelect(){
         ArrayList<WordButton> data=new ArrayList<>();
 
-        for (int i=0;i<4;i++){
+        for (int i=0;i<mCurrentSong.getNameLength();i++){
             View view= Util.getView(MainActivity.this,
                     R.layout.self_ui_gridview_item);
             WordButton holder=new WordButton();
@@ -208,6 +224,51 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         }
         return data;
     }
+
+    /**
+     * 生成所有的待选文字
+     * @return
+     */
+    private String[] generateWords(){
+        String[] words=new String[MyGridView.COUNTS_WORDS];
+        //存入歌名
+        for(int i=0;i<mCurrentSong.getNameLength();i++){
+            words[i]=mCurrentSong.getNameCharacters()[i]+"";
+
+        }
+        //获取随机文字
+        for (int i=mCurrentSong.getNameLength();i<MyGridView.COUNTS_WORDS;i++){
+            words[i]=getRandomChar()+"";
+        }
+        return words;
+
+    }
+
+    /**
+     * 生成随机文字
+     * @return
+     */
+    private char getRandomChar(){
+        String str="";
+        int highPos;
+        int lowPos;
+
+        Random random=new Random();
+        highPos=(176+Math.abs(random.nextInt(39)));
+        lowPos=(161+Math.abs(random.nextInt(93)));
+
+        byte[] b=new byte[2];
+        b[0]=(Integer.valueOf(highPos)).byteValue();
+        b[1]=(Integer.valueOf(lowPos)).byteValue();
+
+        try {
+            str=new String(b,"GBK");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return str.charAt(0);
+    }
+
 
     @Override
     public void onWordButtonClick(WordButton wordButton) {
