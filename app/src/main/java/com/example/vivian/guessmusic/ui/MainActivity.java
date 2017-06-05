@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -20,14 +21,27 @@ import com.example.vivian.guessmusic.model.IWordButtonClickListener;
 import com.example.vivian.guessmusic.model.Song;
 import com.example.vivian.guessmusic.model.WordButton;
 import com.example.vivian.guessmusic.myui.MyGridView;
+import com.example.vivian.guessmusic.util.MyLog;
 import com.example.vivian.guessmusic.util.Util;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements IWordButtonClickListener{
     public final static int COUNTS_WORDS=24;
+    private static final String TAG = "MainActivity";
+    /**
+     * 答案状态
+     */
+    public final static int STATUS_ANSWER_RIGHT=1;
+    public final static int STATUS_ANSWER_WRONG=2;
+    public final static int STATUS_ANSWER_LACK=3;
+
+    //闪烁次数
+    public static final int SPASH_TIMES=6;
     private Animation mPanAnim;
     private LinearInterpolator mPanLin;
 
@@ -213,12 +227,18 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         for (int i=0;i<mCurrentSong.getNameLength();i++){
             View view= Util.getView(MainActivity.this,
                     R.layout.self_ui_gridview_item);
-            WordButton holder=new WordButton();
+            final WordButton holder=new WordButton();
             holder.mViewButton = (Button)view.findViewById(R.id.item_btn);
             holder.mViewButton.setTextColor(Color.WHITE);
             holder.mViewButton.setText("");
             holder.mIsVisiable=false;
             holder.mViewButton.setBackgroundResource(R.drawable.game_wordblank);
+            holder.mViewButton.setOnClickListener((new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    clearTheAnswer(holder);
+                }
+            }));
             data.add(holder);
 
         }
@@ -230,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
      * @return
      */
     private String[] generateWords(){
+        Random random=new Random();
         String[] words=new String[MyGridView.COUNTS_WORDS];
         //存入歌名
         for(int i=0;i<mCurrentSong.getNameLength();i++){
@@ -240,6 +261,15 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         for (int i=mCurrentSong.getNameLength();i<MyGridView.COUNTS_WORDS;i++){
             words[i]=getRandomChar()+"";
         }
+        //打乱顺序:首先从所有元素中随机选取一个与第一个元素交换
+        //然后在第二个之后选择一个元素与第二个交换，直到最后一个元素
+        for(int i=MyGridView.COUNTS_WORDS-1;i>=0;i--){
+            int index=random.nextInt(i+1);
+            String buf=words[index];
+            words[index]=words[i];
+            words[i]=buf;
+        }
+
         return words;
 
     }
@@ -268,10 +298,128 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         }
         return str.charAt(0);
     }
+    private void clearTheAnswer(WordButton wordButton){
+        wordButton.mViewButton.setText("");
+        wordButton.mWordString="";
+        wordButton.mIsVisiable=false;
+        //设置待选框的可见性
+        setButtonVisiable(mAllWords.get(wordButton.mIndex),View.VISIBLE);
+    }
+
+    /**
+     * 设置答案
+     * @param wordButton
+     */
+    private void setSelectWord(WordButton wordButton){
+        for(int i=0;i<mBtnSelsecWords.size();i++){
+            if(mBtnSelsecWords.get(i).mWordString.length()==0){
+                //设置答案文字框内容及可见性
+                mBtnSelsecWords.get(i).mViewButton.setText(wordButton.mWordString);
+                mBtnSelsecWords.get(i).mIsVisiable=true;
+                mBtnSelsecWords.get(i).mWordString=wordButton.mWordString;
+                //记录索引
+                mBtnSelsecWords.get(i).mIndex=wordButton.mIndex;
+                //Log
+                MyLog.d(TAG,mBtnSelsecWords.get(i).mIndex+"");
+
+                //设置待选框可见性
+                setButtonVisiable(wordButton,View.INVISIBLE);
+                break;
+
+            }
+        }
+    }
+
+    /**
+     * 设置待选文字框是否可见
+     * @param button
+     * @param visibility
+     */
+    private void setButtonVisiable(WordButton button,int visibility){
+        button.mViewButton.setVisibility(visibility);
+        button.mIsVisiable=(visibility==View.VISIBLE)?true:false;
+
+        //Log
+        MyLog.d(TAG,button.mIsVisiable+"");
+
+    }
 
 
     @Override
     public void onWordButtonClick(WordButton wordButton) {
+        setSelectWord(wordButton);
+        //获得答案状态
+        int checkResult=checkTheAnswer();
 
+        //检查答案
+        switch (checkResult){
+            case STATUS_ANSWER_RIGHT:
+                //过关并获得奖励
+                break;
+            case STATUS_ANSWER_WRONG:
+                //错误提示
+                sparkTheWords();
+
+                break;
+            case STATUS_ANSWER_LACK:
+                //设置文字颜色为白色
+                for (int i=0;i<mBtnSelsecWords.size();i++){
+                    mBtnSelsecWords.get(i).mViewButton.setTextColor(Color.WHITE);
+                }
+                break;
+            default:break;
+        }
+
+    }
+
+    /**
+     * 检查答案
+     */
+    private int checkTheAnswer(){
+        //先检查长度
+        for (int i=0;i<mBtnSelsecWords.size();i++){
+            //如果有空的，说明答案不完整
+            if (mBtnSelsecWords.get(i).mWordString.length()==0){
+                return STATUS_ANSWER_LACK;
+            }
+        }
+        //答案完整，继续检查正确性
+        StringBuffer sb=new StringBuffer();
+        for (int i=0;i<mBtnSelsecWords.size();i++){
+            sb.append(mBtnSelsecWords.get(i).mWordString);
+        }
+        return (sb.toString().equals(mCurrentSong.getSongName()))?
+                STATUS_ANSWER_RIGHT:STATUS_ANSWER_WRONG;
+    }
+
+    /**
+     * 答案错误，闪烁文字
+     */
+    private void sparkTheWords(){
+        //定时器相关
+        TimerTask task=new TimerTask() {
+            boolean mChange=false;
+            int mSparkTimes=0;
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (++mSparkTimes>SPASH_TIMES){
+                            return;
+                        }
+                        //执行闪烁逻辑
+                        for (int i=0;i<mBtnSelsecWords.size();i++){
+                            mBtnSelsecWords.get(i).mViewButton.setTextColor(
+                                    mChange?Color.RED:Color.WHITE
+                            );
+                        }
+                        mChange=!mChange;
+                    }
+                });
+            }
+        };
+        Timer timer=new Timer();
+        timer.schedule(task,1,150);
     }
 }
