@@ -71,6 +71,9 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     private Song mCurrentSong;
     //当前关的索引
     private int mCurrentStageIndex=-1;
+    private TextView mCurrentStagePassView;
+    private TextView mCurrentStageView;
+    //当前歌曲名称
 
     //当前金币数量
     private int mCurrentCoins=Const.TOTAL_COINS;
@@ -195,18 +198,32 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         song.setSongName(stage[Const.INDEX_SONG_NAME]);
         return song;
     }
+
+    /**
+     * 加载当前关的数据
+     */
     public void initCurrentStageData(){
         //读取当前关的歌曲信息
         mCurrentSong=loadStageSongInfo(++mCurrentStageIndex);
         //初始化已选择框
         mBtnSelsecWords=initWordSelect();
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(140,140);
+
+        //清空原来的答案
+        mViewWordsContainer.removeAllViews();
+        //增加新的答案框
         for (int i=0;i<mBtnSelsecWords.size();i++){
             mViewWordsContainer.addView(
                     mBtnSelsecWords.get(i).mViewButton,
                     params);
 
         }
+        //显示当前关的索引
+        mCurrentStageView= (TextView) findViewById(R.id.text_current_stage);
+        if (mCurrentStageView!=null) {
+            mCurrentStageView.setText((mCurrentStageIndex + 1) + "");
+        }
+
 
         //获得数据
         mAllWords=initAllword();
@@ -405,9 +422,50 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
      * 处理过关界面及事件
      */
     private void handlePassEvent(){
+        //显示过关界面
         mPassView=this.findViewById(R.id.pass_view);
         mPassView.setVisibility(View.VISIBLE);
 
+        //停止未完成的动画
+        mViewPan.clearAnimation();
+        //当前关的索引
+        mCurrentStagePassView= (TextView) findViewById(
+                R.id.text_current_stage_pass);
+        if (mCurrentStagePassView!=null){
+            mCurrentStagePassView.setText((mCurrentStageIndex+1)+"");
+
+        }
+        //显示歌曲的名称
+        mCurrentStagePassView= (TextView) findViewById(R.id.text_current_song_name_pass);
+        if (mCurrentStagePassView!=null){
+            mCurrentStagePassView.setText(mCurrentSong.getSongName());
+        }
+        //下一关按键处理
+        ImageButton btnPass= (ImageButton) findViewById(R.id.btn_next);
+        btnPass.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (judegAppPassed()){
+                    //进入通关界面
+                    Util.startActivity(MainActivity.this,AppPassView.class);
+                }else {
+                    //开始下一关
+                    mPassView.setVisibility(View.GONE);
+                    //加载关卡数据
+                    initCurrentStageData();
+                }
+
+            }
+        });
+    }
+
+    /**
+     * 判断是否通关
+     * @return
+     */
+
+    private boolean judegAppPassed(){
+        return (mCurrentStageIndex==Const.SONG_INFO.length-1);
     }
 
     /**
