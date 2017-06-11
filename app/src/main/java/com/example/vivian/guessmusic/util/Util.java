@@ -10,7 +10,15 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.example.vivian.guessmusic.R;
+import com.example.vivian.guessmusic.data.Const;
 import com.example.vivian.guessmusic.model.IAlertDialogButtonListener;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * Created by Vivian on 2017/5/31.
@@ -44,7 +52,7 @@ public class Util {
      * @param message
      * @param listener
      */
-    public static void showDialog(Context context, String message,
+    public static void showDialog(final Context context, String message,
                                   final IAlertDialogButtonListener listener){
         View dialogView=null;
 
@@ -66,6 +74,8 @@ public class Util {
                 if (listener!=null){
                     listener.onClick();
                 }
+                //播放音效
+                MyPlayer.playTone(context,MyPlayer.INDEX_STONE_ENTER);
 
             }
         });
@@ -75,6 +85,7 @@ public class Util {
                 if (mAlterDialog!=null){
                     mAlterDialog.cancel();
                 }
+                MyPlayer.playTone(context,MyPlayer.INDEX_STONE_CANCEL);
             }
         });
         //为dialog设置view
@@ -82,5 +93,65 @@ public class Util {
         mAlterDialog=builder.create();
         //显示对话框
         mAlterDialog.show();
+    }
+
+    /**
+     * 游戏数据保存
+     * @param context
+     * @param stageIndex
+     * @param coins
+     */
+    public static void saveData(Context context,int stageIndex,int coins){
+        FileOutputStream fileOutputStream=null;
+
+        try {
+            fileOutputStream=context.openFileOutput(Const.FILE_NAME_SAVE_DATA,
+                    Context.MODE_PRIVATE);
+            DataOutputStream dos=new DataOutputStream(fileOutputStream);
+
+            dos.writeInt(stageIndex);
+            dos.writeInt(coins);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if (fileOutputStream!=null){
+                try {
+                    fileOutputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 读取游戏数据
+     * @param context
+     * @return
+     */
+    public static int[] loadData(Context context){
+        FileInputStream fileInputStream=null;
+        int[] datas={-1,Const.TOTAL_COINS};
+        try {
+            fileInputStream=context.openFileInput(Const.FILE_NAME_SAVE_DATA);
+            DataInputStream dis=new DataInputStream(fileInputStream);
+            datas[Const.INDEX_LOAD_DATA_STAGE]=dis.readInt();
+            datas[Const.INDEX_LOAD_DATA_COINS]=dis.readInt();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if (fileInputStream!=null){
+                try {
+                    fileInputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return datas;
     }
 }

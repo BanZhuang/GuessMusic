@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
 
     //Play 按键事件
     private ImageButton mBtnPlayStart;
+    private ImageButton mBtnBack;
     //过关界面
     private View mPassView;
 
@@ -75,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     //当前的歌曲
     private Song mCurrentSong;
     //当前关的索引
-    private int mCurrentStageIndex=-1;
+    public  int mCurrentStageIndex=-1;
     private TextView mCurrentStagePassView;
     private TextView mCurrentStageView;
     //当前歌曲名称
@@ -90,7 +91,25 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //读取数据
+        int[] datas=Util.loadData(this);
+        mCurrentStageIndex=datas[Const.INDEX_LOAD_DATA_STAGE];
+        mCurrentCoins=datas[Const.INDEX_LOAD_DATA_COINS];
+        mBtnBack= (ImageButton) findViewById(R.id.btn_bar_back);
+        mBtnBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mCurrentStageIndex-=2;
+                handleCoins(-30);
+                initCurrentStageData();
+                MyPlayer.stopTheSong(MainActivity.this);
+                MyPlayer.playSong(MainActivity.this,mCurrentSong.getSongFileName());
+//                handlePlayButton();
+            }
+        });
+
         mViewWordsContainer= (LinearLayout) findViewById(R.id.word_select_container);
+
 
         mViewCurrentCoins= (TextView) findViewById(R.id.txt_bar_coins);
         mViewCurrentCoins.setText(mCurrentCoins+"");
@@ -184,6 +203,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         //一开始播放音乐
         handlePlayButton();
     }
+
     private  void handlePlayButton(){
         if (mViewPanBar!=null) {
             if (!mIsRunning) {
@@ -200,6 +220,9 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
 
     @Override
     protected void onPause() {
+        //保存游戏数据
+        Util.saveData(MainActivity.this,mCurrentStageIndex-1
+                ,mCurrentCoins);
         mViewPan.clearAnimation();
         //暂停yinyue
         MyPlayer.stopTheSong(MainActivity.this);
@@ -216,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
     /**
      * 加载当前关的数据
      */
-    public void initCurrentStageData(){
+    public  void initCurrentStageData(){
         //读取当前关的歌曲信息
         mCurrentSong=loadStageSongInfo(++mCurrentStageIndex);
         //初始化已选择框
@@ -441,11 +464,14 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         //显示过关界面
         mPassView=this.findViewById(R.id.pass_view);
         mPassView.setVisibility(View.VISIBLE);
+        handleCoins(30);
 
         //停止未完成的动画
         mViewPan.clearAnimation();
         //停止正在播放的音乐
         MyPlayer.stopTheSong(MainActivity.this);
+        //播放音效
+        MyPlayer.playTone(MainActivity.this,MyPlayer.INDEX_STONE_COIN);
         //当前关的索引
         mCurrentStagePassView= (TextView) findViewById(
                 R.id.text_current_stage_pass);

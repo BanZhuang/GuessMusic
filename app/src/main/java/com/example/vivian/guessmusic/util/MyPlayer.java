@@ -13,6 +13,7 @@ import java.io.IOException;
  */
 
 public class MyPlayer {
+    //索引
     public final static int INDEX_STONE_ENTER=0;
     public final static int INDEX_STONE_CANCEL=1;
     public final static int INDEX_STONE_COIN=2;
@@ -22,6 +23,27 @@ public class MyPlayer {
     private static MediaPlayer[] mToneMediaPlayer=new MediaPlayer[SONG_NAMES.length];
     //歌曲播放
     private static MediaPlayer mMusicMediaPlayer;
+    //播放音效
+    public static void playTone(Context context,int index){
+        //加载声音
+        AssetManager assetManager=context.getAssets();
+
+        if (mToneMediaPlayer[index]==null){
+            mToneMediaPlayer[index]=new MediaPlayer();
+            try {
+                AssetFileDescriptor fileDescriptor=assetManager.openFd(SONG_NAMES[index]);
+                mToneMediaPlayer[index].setDataSource(fileDescriptor.getFileDescriptor(),
+                        fileDescriptor.getStartOffset(),
+                        fileDescriptor.getLength());
+                mToneMediaPlayer[index].prepare();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        mToneMediaPlayer[index].start();
+
+    }
 
     /**
      * 播放歌曲
