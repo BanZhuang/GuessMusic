@@ -103,8 +103,8 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
                 handleCoins(-30);
                 initCurrentStageData();
                 MyPlayer.stopTheSong(MainActivity.this);
-                MyPlayer.playSong(MainActivity.this,mCurrentSong.getSongFileName());
-//                handlePlayButton();
+//                MyPlayer.playSong(MainActivity.this,mCurrentSong.getSongFileName());
+                handlePlayButton();
             }
         });
 
@@ -201,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         handleTipAnswer();
 
         //一开始播放音乐
-        handlePlayButton();
+//        handlePlayButton();
     }
 
     private  void handlePlayButton(){
@@ -269,7 +269,7 @@ public class MainActivity extends AppCompatActivity implements IWordButtonClickL
         //更新数据 MyGridView
         mMyGridView.updateData(mAllWords);
         //一开始播放音乐
-        handlePlayButton();
+//        handlePlayButton();
     }
 
     /**
